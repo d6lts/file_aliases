@@ -8,14 +8,13 @@
 /**
  * Implements file_aliases_hook_process().
  */
-//function file_aliases_image_process(&$node, &$file, &$path, &$alias, &$count) {
-//  $count[$file['name']] = isset($count[$file['name']]) ? $count[$file['name']] + 1 : 1;
-//  $target = &$node->content[$file['name']]['field']['items'][$count[$file['name']] - 1]['#item'];
-//
-//  $target['origpath'] = $file['field']['filepath'];
-//  $target['filepath'] = $path . $alias;
-//  $target['filename'] = array_pop(explode('/', $alias));
-//}
+function file_aliases_image_process(&$node, &$file, &$path, &$alias, &$count) {
+  $count[$file['name']] = isset($count[$file['name']]) ? $count[$file['name']] + 1 : 1;
+  $target = &$node->content[$file['name']]['items'][$count[$file['name']] - 1]['#item'];
+  $target['origpath'] = $file['field']['uri'];
+  $target['uri'] = $alias;
+  $target['filename'] = array_pop(explode('/', $alias));
+}
 
 /**
  * Implements file_aliases_hook_views_handlers().
@@ -43,51 +42,48 @@
 /**
  * Implements hook_theme_registry_alter().
  */
-//function file_aliases_theme_registry_alter(&$theme_registry) {
-//  $theme_registry['imagefield_image']['theme path'] = drupal_get_path('module', 'file_aliases');
-//  $theme_registry['imagefield_image']['function'] = 'theme_file_aliases_imagefield_image';
-//  $theme_registry['imagefield_image']['theme paths'][0] = drupal_get_path('module', 'file_aliases');
-//}
+function file_aliases_theme_registry_alter(&$theme_registry) {
+  $theme_registry['field_formatter_image']['theme path'] = drupal_get_path('module', 'file_aliases');
+  $theme_registry['field_formatter_image']['function'] = 'theme_file_aliases_field_formatter_image';
+
+  foreach (image_styles() as $style) {
+    $theme_registry['field_formatter_image__' . $style['name']]['theme path'] = drupal_get_path('module', 'file_aliases');
+    $theme_registry['field_formatter_image__' . $style['name']]['function'] = 'theme_file_aliases_field_formatter_image';
+  }
+}
 
 /**
- * Modified version of theme_imagefield_image().
+ * Modified version of theme_field_formatter_image().
+ *
+ * Theme function for 'image' image field formatter.
  */
-//function theme_file_aliases_imagefield_image($file, $alt = '', $title = '', $attributes = NULL, $getsize = TRUE) {
-//  $file = (array)$file;
-//
-//  if (isset($file['origpath'])) {
-//    $file['alias'] = $file['filepath'];
-//    $file['filepath'] = $file['origpath'];
-//  }
-//
-//  if (!file_exists($file['filepath'])) {
-//    return '<!-- File not found: ' . $file['filepath'] . ' -->';
-//  }
-//
-//  if ($getsize && (list($width, $height, $type, $image_attributes) = @getimagesize($file['filepath']))) {
-//    $attributes['width'] = $width;
-//    $attributes['height'] = $height;
-//  }
-//
-//  if (!empty($title)) {
-//    $attributes['title'] = $title;
-//  }
-//
-//  // Alt text should be added even if it is an empty string.
-//  $attributes['alt'] = $alt;
-//
-//  // Add a timestamp to the URL to ensure it is immediately updated after editing.
-//  $query_string = '';
-//  if (isset($file['timestamp'])) {
-//    $query_character = (variable_get('file_downloads', FILE_DOWNLOADS_PUBLIC) == FILE_DOWNLOADS_PRIVATE && variable_get('clean_url', '0') == '0') ? '&' : '?';
-//    $query_string = $query_character . $file['timestamp'];
-//  }
-//
-//  $url = file_create_url(isset($file['alias']) ? $file['alias'] : $file['filepath']) . $query_string;
-//  $attributes['src'] = $url;
-//  $attributes = drupal_attributes($attributes);
-//  return '<img ' . $attributes . ' />';
-//}
+function theme_file_aliases_field_formatter_image($variables) {
+  $element = $variables['element'];
+  $image = array(
+    'path' => $element['#item']['uri'],
+    'alt' => $element['#item']['alt'],
+    'title' => $element['#item']['title'],
+  );
+
+  // Check if this requires a particular image style.
+  $matches = array();
+  if (preg_match('/__([a-z0-9_]+)/', $element['#formatter'], $matches)) {
+    $image['style_name'] = $matches[1];
+    $image['path'] = $element['#item']['origpath'];
+    return theme('image_style', $image);
+  }
+  else {
+    $attributes = @getimagesize($element['#item']['origpath']);
+    $image += array(
+      'attributes' => array(
+        'width' => $attributes[0],
+        'height' => $attributes[1],
+      ),
+      'getsize' => FALSE,
+    );
+    return theme('image', $image);
+  }
+}
 
 /**
  * Implements CCK's hook_field($op = 'sanitize').
