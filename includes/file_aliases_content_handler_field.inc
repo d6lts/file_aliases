@@ -19,7 +19,7 @@ class file_aliases_content_handler_field extends content_handler_field {
     $db_info = content_database_info($field);
 
     // Build a pseudo-node from the retrieved values.
-    $node = drupal_clone($values);
+    $node = clone($values);
     $node->type = $values->{$this->aliases['type']};
     $node->nid = $values->{$this->aliases['nid']};
     $node->vid = $values->{$this->aliases['vid']};
