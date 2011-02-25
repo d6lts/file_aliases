@@ -1,4 +1,3 @@
-// $Id$
 
 The File Aliases module allows you to use token customizable aliases for your
 uploaded files, giving you the ability to keep your file system organized as per

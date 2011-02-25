@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Views handler for image field.

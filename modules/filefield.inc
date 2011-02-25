@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Contains FileField module integration for the File Aliases module.

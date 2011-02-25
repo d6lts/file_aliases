@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Contains Drupal core Upload module integration for the File Aliases module.

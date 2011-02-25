@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Field handler to provide simple renderer that allows linking to a file alias.

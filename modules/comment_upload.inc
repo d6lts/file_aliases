@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Contains Comment Upload module integration for the File Aliases module.
