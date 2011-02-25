@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Contains Image module integration for the File Aliases module.

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Field handler to provide a list of uploads.
