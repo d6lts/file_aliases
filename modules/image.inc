@@ -41,48 +41,48 @@ function file_aliases_image_process(&$node, &$file, &$path, &$alias, &$count) {
 /**
  * Implements hook_theme_registry_alter().
  */
-function file_aliases_theme_registry_alter(&$theme_registry) {
-  $theme_registry['field_formatter_image']['theme path'] = drupal_get_path('module', 'file_aliases');
-  $theme_registry['field_formatter_image']['function'] = 'theme_file_aliases_field_formatter_image';
-
-  foreach (image_styles() as $style) {
-    $theme_registry['field_formatter_image__' . $style['name']]['theme path'] = drupal_get_path('module', 'file_aliases');
-    $theme_registry['field_formatter_image__' . $style['name']]['function'] = 'theme_file_aliases_field_formatter_image';
-  }
-}
+//function file_aliases_theme_registry_alter(&$theme_registry) {
+//  $theme_registry['field_formatter_image']['theme path'] = drupal_get_path('module', 'file_aliases');
+//  $theme_registry['field_formatter_image']['function'] = 'theme_file_aliases_field_formatter_image';
+//
+//  foreach (image_styles() as $style) {
+//    $theme_registry['field_formatter_image__' . $style['name']]['theme path'] = drupal_get_path('module', 'file_aliases');
+//    $theme_registry['field_formatter_image__' . $style['name']]['function'] = 'theme_file_aliases_field_formatter_image';
+//  }
+//}
 
 /**
  * Modified version of theme_field_formatter_image().
  *
  * Theme function for 'image' image field formatter.
  */
-function theme_file_aliases_field_formatter_image($variables) {
-  $element = $variables['element'];
-  $image = array(
-    'path' => $element['#item']['uri'],
-    'alt' => $element['#item']['alt'],
-    'title' => $element['#item']['title'],
-  );
-
-  // Check if this requires a particular image style.
-  $matches = array();
-  if (preg_match('/__([a-z0-9_]+)/', $element['#formatter'], $matches)) {
-    $image['style_name'] = $matches[1];
-    $image['path'] = $element['#item']['origpath'];
-    return theme('image_style', $image);
-  }
-  else {
-    $attributes = @getimagesize($element['#item']['origpath']);
-    $image += array(
-      'attributes' => array(
-        'width' => $attributes[0],
-        'height' => $attributes[1],
-      ),
-      'getsize' => FALSE,
-    );
-    return theme('image', $image);
-  }
-}
+//function theme_file_aliases_field_formatter_image($variables) {
+//  $element = $variables['element'];
+//  $image = array(
+//    'path' => $element['#item']['uri'],
+//    'alt' => $element['#item']['alt'],
+//    'title' => $element['#item']['title'],
+//  );
+//
+//  // Check if this requires a particular image style.
+//  $matches = array();
+//  if (preg_match('/__([a-z0-9_]+)/', $element['#formatter'], $matches)) {
+//    $image['style_name'] = $matches[1];
+//    $image['path'] = $element['#item']['origpath'];
+//    return theme('image_style', $image);
+//  }
+//  else {
+//    $attributes = @getimagesize($element['#item']['origpath']);
+//    $image += array(
+//      'attributes' => array(
+//        'width' => $attributes[0],
+//        'height' => $attributes[1],
+//      ),
+//      'getsize' => FALSE,
+//    );
+//    return theme('image', $image);
+//  }
+//}
 
 /**
  * Implements CCK's hook_field($op = 'sanitize').

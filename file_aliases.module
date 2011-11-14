@@ -5,6 +5,15 @@
  */
 
 /**
+ * Include additional files.
+ */
+foreach (module_list() as $module) {
+  if (file_exists($file = dirname(__FILE__) . "/modules/{$module}.inc")) {
+    require_once $file;
+  }
+}
+
+/**
  * Implements hook_menu().
  */
 function file_aliases_menu() {
@@ -19,105 +28,93 @@ function file_aliases_menu() {
 }
 
 /**
- * Implements hook_init().
+ * Implements hook_preprocess_link().
  */
-function file_aliases_init() {
-  foreach (module_list() as $module) {
-    if (file_exists($file = drupal_get_path('module', 'file_aliases') . '/modules/' . $module . '.inc')) {
-      require_once $file;
-    }
+function file_aliases_preprocess_link(&$variables) {
+  if ($uri = file_path_to_uri($variables['path'])) {
+    //dpm($uri);
   }
 }
 
-/**
- * Implements hook_filefield_paths_field_settings().
- */
-function file_aliases_filefield_paths_field_settings() {
-  return array(
-    'file_alias' => array(
-      'title' => 'File alias',
-      'sql' => 'filealias',
-
-      'data' => array('display' => 'file_alias_display'),
-
-      'form' => array(
-        'file_alias' => array(
-          '#type' => 'textfield',
-          '#title' => t('File alias'),
-          '#default_value' => file_directory_path() . '/[file:ffp:onlyname:original].[file:ffp:extension:original]',
-          '#maxlength' => 512,
-          '#size' => 128,
-        ),
-
-        'file_alias_display' => array(
-          '#type' => 'checkbox',
-          '#title' => t('Display alias'),
-          '#description' => t('If checked, the file alias will be displayed instead of the file') . '.',
-          '#default_value' => 0,
-          '#weight' => 3
-        ),
-      ),
-    )
-  );
+function file_path_to_uri($path) {
+  foreach (array_keys(file_get_stream_wrappers()) as $scheme) {
+    if (strrpos($path, file_create_url("{$scheme}://")) === 0) {
+      return str_replace(file_create_url("{$scheme}://"), "{$scheme}://", $path);
+    }
+  }
+  return FALSE;
 }
 
 /**
- * Implements hook_filefield_paths_process_file().
+ * Implements hook_preprocess_image().
  */
-function file_aliases_filefield_paths_process_file($new, $file, $settings, $node, $update) {
-  if ($new) {
-    global $user;
-    $token_data = array('file' => file_load($file['field']['fid']), 'node' => $node, 'user' => $user);
-    $file['filealias'] = filefield_paths_process_string($settings['filealias']['value'], $token_data, $settings['filealias']);
-
-    $path = 'filefield_paths/alias/' . $file['field']['fid'];
-    $alias = drupal_get_path_alias($path);
-    if ($alias !== $path) {
-      path_delete(array('source' => $path));
+function file_aliases_preprocess_image(&$variables) {
+  if (file_uri_scheme($variables['path']) == 'http') {
+    if (!preg_match('/.*?files\/styles\/(.*?)\/(.*?)\/(.*)/', $variables['path'], $matches)) {
+      return;
     }
-    path_save($path = array('source' => $path, 'alias' => $file['filealias']));
+    $variables['path'] = "{$matches[2]}://{$matches[3]}";
+  }
+
+  $result = db_select('file_managed', 'f')
+    ->fields('f', array('fid'))
+    ->condition('uri', $variables['path'])
+    ->execute()
+    ->fetchAll();
+
+  $filefield_paths_alias = "filefield_paths/alias/{$result[0]->fid}";
+  if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
+    $variables['path'] = $alias;
   }
 }
 
 /**
  * Implements hook_node_view().
  */
-function file_aliases_node_view(stdClass $node, $build_mode) {
-  if (($ffp = filefield_paths_get_fields($node)) == TRUE) {
-      $count = array();
-      foreach ($ffp['#files'] as &$file) {
-        if ($ffp['#settings'][$file['name']]['filealias']['display'] == TRUE) {
-        $filefield_paths_alias = 'filefield_paths/alias/' . $file['field']['fid'];
-          if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
-            // Calculate relative path.
-          $path = (file_uri_scheme($file['field']['uri']) !== 'private') ? '' : '../../';
-            if (empty($path)) {
-              foreach (explode('/', file_directory_path()) as $dir) {
-                $path .= '../';
-              }
-            }
-
-            // Invoke file_aliases_hook_process().
-          if (function_exists($function = 'file_aliases_' . $file['module'] . '_process')) {
-              $function($node, $file, $path, $alias, $count);
-            }
-
-          }
-        }
-      }
-  }
-}
+//function file_aliases_entity_view($entity, $type, $view_mode, $langcode) {
+//  if (($ffp = filefield_paths_get_fields($entity, $type)) == TRUE) {
+//    $count = array();
+//    foreach ($ffp['#files'] as &$file) {
+//      if ($ffp['#settings'][$file['name']]['filealias']['display'] == TRUE) {
+//      $filefield_paths_alias = "filefield_paths/alias/{$file['field']['fid']}";
+//        if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
+//          //dpm($file);
+//          //dpm($entity->{$file['name']});
+//          $entity->content[$file['name']]['#items'][0]['alias'] = $alias;
+//          $entity->content[$file['name']][0]['#item']['alias'] = $alias;
+//          //$file['uri'] = $alias;
+//          // Calculate relative path.
+//    //    $path = (file_uri_scheme($file['field']['uri']) !== 'private') ? '' : '../../';
+//    //      if (empty($path)) {
+//    //        foreach (explode('/', file_directory_path()) as $dir) {
+//    //          $path .= '../';
+//    //        }
+//    //      }
+//    //
+//    //      // Invoke file_aliases_hook_process().
+//    //    if (function_exists($function = 'file_aliases_' . $file['module'] . '_process')) {
+//    //        $function($node, $file, $path, $alias, $count);
+//    //      }
+//    //
+//        }
+//      }
+//    }
+//  }
+////  dpm($entity);
+//}
 
 function file_aliases_load_fid($fid) {
-  if (request_uri() == base_path() . 'filefield_paths/alias/' . $fid) {
+  if (request_uri() == base_path() . "filefield_paths/alias/{$fid}") {
     drupal_not_found();
     exit;
   }
 
-  $results = db_query("SELECT filemime, uri FROM {file} WHERE fid = :fid", array(
-    ':fid' => $fid
-  ));
-  foreach ($results as $result) { break; }
+  $results = db_select('file_managed', 'f')
+    ->fields('f', array('filemime', 'uri'))
+    ->condition('fid', $fid)
+    ->execute()
+    ->fetchAll();
+  $result = current($results);
 
   if (file_uri_scheme($result->uri) == 'private') {
     $file = explode('://', $result->uri);
@@ -125,17 +122,20 @@ function file_aliases_load_fid($fid) {
   }
 
   else {
-    header('Content-Type: ' . $result->filemime);
+    header("Content-Type: {$result->filemime}");
     header('Cache-Control: public');
     readfile($result->uri);
   }
 }
 
+/**
+ * Implements hook_file_download().
+ */
 function file_aliases_file_download($uri) {
   $fileinfo = pathinfo(drupal_get_path_alias($_GET['q']));
   return array(
     'Cache-Control' => 'public',
-    'Content-Disposition' => 'filename="' . $fileinfo['basename'] . '"'
+    'Content-Disposition' => "filename='{$fileinfo['basename']}'"
   );
 }
 

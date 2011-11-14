@@ -18,25 +18,25 @@ function file_aliases_file_process(&$node, &$file, &$path, &$alias, &$count) {
 /**
  * Implements file_aliases_hook_views_handlers().
  */
-function file_aliases_file_views_handlers(&$handlers) {
-  $handlers['file_aliases_content_handler_field_multiple'] = array(
-    'parent' => 'file_aliases_content_handler_field',
-  );
-  $handlers['file_aliases_content_handler_field'] = array(
-    'parent' => 'content_handler_field',
-  );
-}
+//function file_aliases_file_views_handlers(&$handlers) {
+//  $handlers['file_aliases_content_handler_field_multiple'] = array(
+//    'parent' => 'file_aliases_content_handler_field',
+//  );
+//  $handlers['file_aliases_content_handler_field'] = array(
+//    'parent' => 'content_handler_field',
+//  );
+//}
 
 /**
  * Implements file_aliases_hook_views_data_alter().
  */
-function file_aliases_file_views_data_alter(&$data) {
-  foreach (content_fields() as $field) {
-    if ($field['module'] == 'file' && isset($data['node_data_' . $field['field_name']])) {
-      $data['node_data_' . $field['field_name']][$field['field_name'] . '_fid']['field']['handler'] = 'file_aliases_content_handler_field_multiple';
-    }
-  }
-}
+//function file_aliases_file_views_data_alter(&$data) {
+//  foreach (content_fields() as $field) {
+//    if ($field['module'] == 'file' && isset($data['node_data_' . $field['field_name']])) {
+//      $data['node_data_' . $field['field_name']][$field['field_name'] . '_fid']['field']['handler'] = 'file_aliases_content_handler_field_multiple';
+//    }
+//  }
+//}
 
 /**
  * Implements CCK's hook_field($op = 'sanitize').
