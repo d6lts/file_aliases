@@ -28,81 +28,60 @@ function file_aliases_menu() {
 }
 
 /**
- * Implements hook_preprocess_link().
+ * Implements hook_file_load().
  */
-function file_aliases_preprocess_link(&$variables) {
-  if ($uri = file_path_to_uri($variables['path'])) {
-    //dpm($uri);
+function file_aliases_file_load($files) {
+  foreach ($files as &$file) {
+    $filefield_paths_alias = "filefield_paths/alias/{$file->fid}";
+    if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
+      $file->uri = file_create_url($alias);
+    }
   }
 }
 
-function file_path_to_uri($path) {
-  foreach (array_keys(file_get_stream_wrappers()) as $scheme) {
-    if (strrpos($path, file_create_url("{$scheme}://")) === 0) {
-      return str_replace(file_create_url("{$scheme}://"), "{$scheme}://", $path);
-    }
+/**
+ * Implements hook_preprocess_image_style().
+ */
+function file_aliases_preprocess_image_style(&$variables) {
+  global $base_url;
+  $source = drupal_lookup_path('source', str_replace($base_url . base_path(), '', $variables['path']));
+  $fid = drupal_substr($source, 22);
+  if ($uri = db_query("SELECT uri FROM {file_managed} WHERE fid = :fid", array(':fid' => $fid))->fetchField()) {
+    $variables['path'] = $uri;
   }
-  return FALSE;
 }
 
 /**
  * Implements hook_preprocess_image().
  */
 function file_aliases_preprocess_image(&$variables) {
-  if (file_uri_scheme($variables['path']) == 'http') {
-    if (!preg_match('/.*?files\/styles\/(.*?)\/(.*?)\/(.*)/', $variables['path'], $matches)) {
-      return;
+  if (isset($variables['style_name']) && preg_match("/.*?files\/styles\/{$variables['style_name']}\/(.*?)\/(.*)/", $variables['path'], $matches)) {
+    if ($fid = db_query("SELECT fid FROM {file_managed} WHERE uri = :uri", array(':uri' => "{$matches[1]}://{$matches[2]}"))->fetchField()) {
+      $filefield_paths_alias = "filefield_paths/alias/{$fid}";
+      if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
+        $variables['path'] = file_create_url($alias) . "?{$variables['style_name']}";
+      }
     }
-    $variables['path'] = "{$matches[2]}://{$matches[3]}";
-  }
-
-  $result = db_select('file_managed', 'f')
-    ->fields('f', array('fid'))
-    ->condition('uri', $variables['path'])
-    ->execute()
-    ->fetchAll();
-
-  $filefield_paths_alias = "filefield_paths/alias/{$result[0]->fid}";
-  if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
-    $variables['path'] = $alias;
   }
 }
 
 /**
- * Implements hook_node_view().
+ * Implements hook_file_url_alter().
+ *
+ * @TODO - Respect 'display alias' checkbox.
  */
-//function file_aliases_entity_view($entity, $type, $view_mode, $langcode) {
-//  if (($ffp = filefield_paths_get_fields($entity, $type)) == TRUE) {
-//    $count = array();
-//    foreach ($ffp['#files'] as &$file) {
-//      if ($ffp['#settings'][$file['name']]['filealias']['display'] == TRUE) {
-//      $filefield_paths_alias = "filefield_paths/alias/{$file['field']['fid']}";
-//        if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
-//          //dpm($file);
-//          //dpm($entity->{$file['name']});
-//          $entity->content[$file['name']]['#items'][0]['alias'] = $alias;
-//          $entity->content[$file['name']][0]['#item']['alias'] = $alias;
-//          //$file['uri'] = $alias;
-//          // Calculate relative path.
-//    //    $path = (file_uri_scheme($file['field']['uri']) !== 'private') ? '' : '../../';
-//    //      if (empty($path)) {
-//    //        foreach (explode('/', file_directory_path()) as $dir) {
-//    //          $path .= '../';
-//    //        }
-//    //      }
-//    //
-//    //      // Invoke file_aliases_hook_process().
-//    //    if (function_exists($function = 'file_aliases_' . $file['module'] . '_process')) {
-//    //        $function($node, $file, $path, $alias, $count);
-//    //      }
-//    //
-//        }
-//      }
-//    }
-//  }
-////  dpm($entity);
-//}
+function file_aliases_file_url_alter(&$uri) {
+  if ($fid = db_query("SELECT fid FROM {file_managed} WHERE uri = :uri", array(':uri' => $uri))->fetchField()) {
+    $filefield_paths_alias = "filefield_paths/alias/{$fid}";
+    if (($alias = drupal_get_path_alias($filefield_paths_alias)) != $filefield_paths_alias) {
+      $uri = file_create_url($alias);
+    }
+  }
+}
 
+/**
+ * Menu callback; File Alias callback.
+ */
 function file_aliases_load_fid($fid) {
   if (request_uri() == base_path() . "filefield_paths/alias/{$fid}") {
     drupal_not_found();
@@ -115,6 +94,17 @@ function file_aliases_load_fid($fid) {
     ->execute()
     ->fetchAll();
   $result = current($results);
+
+  // Render Image Style preset if applicable.
+  $uri = explode('?', request_uri());
+  if (isset($uri[1]) && strpos($result->filemime, 'image') === 0) {
+    $image_style = $uri[1];
+    $styles = image_styles();
+    if (isset($styles[$image_style])) {
+      $arguments = array_merge(array(image_style_load($image_style), file_uri_scheme($result->uri)), explode('/', str_replace(file_uri_scheme($result->uri) . '://', '', $result->uri)));
+      call_user_func_array('image_style_deliver', $arguments);
+    }
+  }
 
   if (file_uri_scheme($result->uri) == 'private') {
     $file = explode('://', $result->uri);
@@ -138,27 +128,3 @@ function file_aliases_file_download($uri) {
     'Content-Disposition' => "filename='{$fileinfo['basename']}'"
   );
 }
-
-//function _file_aliases_display_alias($type, $field, $refresh = FALSE) {
-//  static $display = array();
-//
-//  if (empty($display[$type][$field])) {
-//    $result = db_fetch_object(db_query(
-//      "SELECT filealias FROM {filefield_paths} WHERE type = '%s' AND field = '%s'", $type, $field
-//    ));
-//    $data = unserialize($result->filealias);
-//    $display[$type][$field] = $data['display'];
-//  }
-//  return $display[$type][$field];
-//}
-
-/**
- * Implements hook_views_api.
- * Notifies the Views module that we're compatible with a particular API revision.
- */
-//function file_aliases_views_api() {
-//  return array(
-//    'api' => 2,
-//    'path' => drupal_get_path('module', 'file_aliases') . '/includes',
-//  );
-//}

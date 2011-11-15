@@ -6,6 +6,5 @@ package = Fields
 core = 7.x
 files[] = file_aliases.install
 files[] = file_aliases.module
-files[] = modules/file.inc
-files[] = modules/image.inc
+files[] = modules/filefield_paths.inc
 
