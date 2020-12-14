@@ -13,7 +13,7 @@ function file_aliases_comment($a1, $op) {
     $a1->type = $node->type;
 
     if (($ffp = filefield_paths_get_fields($a1, $op)) == FALSE) {
-      break;
+      return;
     }
 
     foreach ($ffp['#files'] as &$file) {
