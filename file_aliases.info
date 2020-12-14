@@ -4,9 +4,3 @@ dependencies[] = filefield_paths
 dependencies[] = path
 package = FileField Paths
 core = 6.x
-
-; Information added by Drupal 6 LTS vendors on 2020-12-14
-version = "6.x-1.2"
-core = "6.x"
-project = "file_aliases"
-datestamp = "1607977999"
